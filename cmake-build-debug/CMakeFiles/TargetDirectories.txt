@@ -1,0 +1,3 @@
+/mnt/d/C/sem_prace_2/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/mnt/d/C/sem_prace_2/cmake-build-debug/CMakeFiles/edit_cache.dir
+/mnt/d/C/sem_prace_2/cmake-build-debug/CMakeFiles/sem_prace_2.dir
