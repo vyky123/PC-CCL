@@ -26,5 +26,5 @@ typedef struct thepgm {
 
 //int process_file(char *filename);
 int load_pgm(char *filename, pgm **pgmfile);
-
+int find_foreground(pgm *pgmfile);
 #endif

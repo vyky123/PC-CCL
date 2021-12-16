@@ -1,7 +1,7 @@
 #include "ccl.h"
 
 
-int load_pgm(char *filename, pgm **pgmfile) {
+int load_pgm(char *filename, pgm **pgm_image) {
     unsigned char ch;
     char line_buffer[200];
     int  i, j, value[3];
@@ -64,20 +64,66 @@ int load_pgm(char *filename, pgm **pgmfile) {
            printf("\n");
        }
    */
-    *pgmfile = (pgm *)malloc(sizeof(pgm));
+    *pgm_image = (pgm *)malloc(sizeof(pgm));
 
-    if (!*pgmfile) {
+    if (!*pgm_image) {
         printf("ERR#3: Memory allocation was unsuccesful!\n");
         exit(ERR_3);
     }
 
-    (*pgmfile)->height = height;
-    (*pgmfile)->width = width;
-    (*pgmfile)->max_value = max_value;
-    (*pgmfile)->data = malloc((width * height) * sizeof(unsigned char));
-    memcpy((*pgmfile)->data, pixels, width * height * sizeof(unsigned char));
+    (*pgm_image)->height = height;
+    (*pgm_image)->width = width;
+    (*pgm_image)->max_value = max_value;
+    (*pgm_image)->data = malloc((width * height) * sizeof(unsigned char));
+    memcpy((*pgm_image)->data, pixels, width * height * sizeof(unsigned char));
 
     fclose(f);
     free(pixels);
     return TRUE;
+}
+int find_foreground(pgm *pgm_image) {
+    int i, j;
+    unsigned char current;
+    unsigned int left_color, up_color, diagonal_color;
+    unsigned int color[pgm_image->height * pgm_image->width];
+
+    for (i = 0; i < pgm_image->height; i++) {
+        for (j = 0; j < pgm_image->width; j++) {
+            current = pgm_image->data[(i * pgm_image->width) + j];
+            if (current) {
+                left_color = 0;
+                up_color = 0;
+                diagonal_color = 0;
+
+                /* Left */
+                if (i > 0 && pgm_image->data[((i-1) * pgm_image->width) + j] == current) {
+                    left_color = color[((i-1) * pgm_image->width) + j];
+                }
+                /* Up */
+                if (j > 0 && pgm_image->data[(i*pgm_image->width) + (j-1)] == current) {
+                    up_color = color[(i * pgm_image->width) + (j-1)];
+                }
+                /* Diagonal */
+                if (i > 0 && j > 0 && pgm_image->data[((i-1) * pgm_image->width) + (j-1)] == current) {
+                    diagonal_color = color[((i-1) * pgm_image->width) + (j-1)];
+                }
+
+                /* Color collision */
+                if (left_color) {
+                    if (up_color && up_color != left_color) {
+                        equivalency_table_add(left_color, up_color);
+                    }
+                    if (diagonal_color && diagonal_color != left_color) {
+                        equivalency_table_add(left_color, diagonal_color);
+                    }
+                }
+                if (up_color) {
+                    if (diagonal_color && diagonal_color != up_color) {
+                        equivalency_table_add(diagonal_color, up_color);
+                    }
+                }
+//                color[(i * pgm_image->width) + j] = /* TODO toto */;
+            }
+        }
+    }
 }
