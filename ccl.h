@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
+#include "linked_list.h"
 
 #define BUFFER_SIZE 256
 
@@ -24,7 +25,13 @@ typedef struct thepgm {
     unsigned int max_value;
 } pgm;
 
+typedef struct theequivalency_set {
+    int color;
+
+} equivalency_set;
+
 //int process_file(char *filename);
-int load_pgm(char *filename, pgm **pgmfile);
-int find_foreground(pgm *pgmfile);
+int load_pgm(char *filename, pgm **pgm_image);
+void free_pgm(pgm *pgm_image);
+int find_foreground(pgm *pgm_image, linked_list **list);
 #endif
