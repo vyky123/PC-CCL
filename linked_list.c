@@ -5,19 +5,22 @@ int list_contains(linked_list *head, int value) {
     while(it) {
         if (it->value == value) {
             return TRUE;
-        }
+        }\
         it = it->next;
     }
     return FALSE;
 }
 
-int list_add(linked_list **head, int value) {
+
+int list_add(linked_list **head, int value, int value2) {
     linked_list *temp;
 
     if (!head) {
         return FALSE;
     }
-
+    if (list_contains(*head, value)) {
+        return FALSE;
+    }
     temp = malloc(sizeof(linked_list));
     if (!temp) {
         printf("ERR#3: Memory allocation was unsuccesful!\n");
@@ -26,6 +29,7 @@ int list_add(linked_list **head, int value) {
 
 
     temp->value = value;
+    temp->value2 = value2;
     temp->next = *head;
     *head = temp;
 

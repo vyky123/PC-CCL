@@ -31,7 +31,10 @@ typedef struct theequivalency_set {
 } equivalency_set;
 
 //int process_file(char *filename);
+void ccl(pgm *pgm_image, linked_list **list, unsigned char *output_data);
 int load_pgm(char *filename, pgm **pgm_image);
+int save_pgm(char *filename, pgm *pgm_image, unsigned char *data);
 void free_pgm(pgm *pgm_image);
-int find_foreground(pgm *pgm_image, linked_list **list);
+void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->height * pgm_image->width]);
+void replace_equivalent(pgm *pgm_image, linked_list *list, int label[pgm_image->height * pgm_image->width]);
 #endif
