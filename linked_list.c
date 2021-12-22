@@ -1,11 +1,17 @@
 #include "ccl.h"
 
 int list_contains(linked_list *head, int value) {
-    linked_list *it = head;
+    linked_list *it;
+
+    if (!head) {
+        return FALSE;
+    }
+
+    it = head;
     while(it) {
         if (it->value == value) {
             return TRUE;
-        }\
+        }
         it = it->next;
     }
     return FALSE;

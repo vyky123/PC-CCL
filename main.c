@@ -1,10 +1,9 @@
 #include "ccl.h"
-#include "linked_list.h"
 
 int main(int argc, char *argv[]) {
     char *input_filename = argv[1];
     char *output_filename = argv[2];
-    pgm *pgm_image = NULL;
+    pgm *pgm_image = NULL, *output_image = NULL;
     unsigned char *output_data = NULL;
     linked_list *list = NULL;
     int i, j;
@@ -16,10 +15,10 @@ int main(int argc, char *argv[]) {
     load_pgm(input_filename, &pgm_image);
 
     output_data = malloc(sizeof(unsigned char) * pgm_image->height * pgm_image->width);
-    ccl(pgm_image, &list, output_data);
+    output_data = ccl(pgm_image, &list);
 
 
-    save_pgm(output_filename, pgm_image, output_data);
+    save_pgm(output_filename, pgm_image, output_data); /* TODO output image */
 
   /*  for (i = 0; i < pgm_image->height; i++) {
         for (j = 0; j < pgm_image->width; j++) {
