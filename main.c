@@ -14,30 +14,19 @@ int main(int argc, char *argv[]) {
     }
     load_pgm(input_filename, &pgm_image);
 
-    output_data = malloc(sizeof(unsigned char) * pgm_image->height * pgm_image->width);
+
     output_data = ccl(pgm_image, &list);
 
 
     save_pgm(output_filename, pgm_image, output_data); /* TODO output image */
-
-  /*  for (i = 0; i < pgm_image->height; i++) {
-        for (j = 0; j < pgm_image->width; j++) {
-            if(pgm_image->data[(i * pgm_image->width) + j]) {
-                printf(". ");
-            }
-            else {
-//                printf("%s ", pgm_image->data[(i * pgm_image->width) + j]);
-                printf("0 ");
-            }
-        }
-        printf("\n");
-    }*/
+    free(output_data);
     linked_list *it = list;
     printf("\n");
     while(it) {
         printf("[%d->%d] ", it->value, it->value2);
         it = it->next;
     }
+    list_free(&list);
     free_pgm(pgm_image);
     return EXIT_SUCCESS;
 }

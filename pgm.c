@@ -119,12 +119,49 @@ unsigned char *ccl(pgm *pgm_image, linked_list **list) {
 
     memset(label, 0, (pgm_image->height * pgm_image->width) * sizeof(int));
     find_foreground(pgm_image, list, label);
+    printf("First iteration:\n");
+    for (i = 0; i < pgm_image->height; i++) {
+        for (j = 0; j < pgm_image->width; j++) {
+            if (label[(i * pgm_image->width) + j]) { /* TODO ne label[0], barvicky */
+//                output_data[(i * pgm_image->width) + j] = pgm_image->max_value;
+                printf("%u  ", (label[(i * pgm_image->width) + j]));
+            }
+            else {
+                //output_data[(i * pgm_image->width) + j] = 0;
+                printf(".  ");
+            }
+        }
+        printf("\n");
+    }
+
+
     replace_equivalent(pgm_image, *list, label);
+    printf("Second iteration:\n");
+    for (i = 0; i < pgm_image->height; i++) {
+        for (j = 0; j < pgm_image->width; j++) {
+            if (label[(i * pgm_image->width) + j]) { /* TODO ne label[0], barvicky */
+//                output_data[(i * pgm_image->width) + j] = pgm_image->max_value;
+                printf("%u  ", (label[(i * pgm_image->width) + j]));
+            }
+            else {
+                //output_data[(i * pgm_image->width) + j] = 0;
+                printf(".  ");
+            }
+        }
+        printf("\n");
+    }
+    linked_list *it = *list;
+    while(it) {
+        printf("[%d->%d] ", it->value, it->value2);
+        it = it->next;
+    }
+    printf("\n");
 
     output_data = malloc(sizeof(unsigned char) * (pgm_image->width * pgm_image->height));
+    memset(output_data, 0, sizeof(unsigned char) * (pgm_image->width * pgm_image->height));
     repaint_image(output_data, pgm_image, label);
 
-
+    printf("Final data:\n");
     for (i = 0; i < pgm_image->height; i++) {
         for (j = 0; j < pgm_image->width; j++) {
             if (label[(i * pgm_image->width) + j]) { /* TODO ne label[0], barvicky */
@@ -145,90 +182,95 @@ void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->he
     int i, j;
     unsigned char current;
     int left_label, up_label, left_diagonal_label, right_diagonal_label;
-    int is_set, has_collided;
     int label_counter = 1;
+    int lowest;
+    int is_set;
 
     for (i = 0; i < pgm_image->height; i++) {
         for (j = 0; j < pgm_image->width; j++) {
             current = pgm_image->data[(i * pgm_image->width) + j];
 
             if (current) {
-                is_set = FALSE;
-                has_collided = FALSE; /* TODO has_collided? */
                 left_label = 0;
                 up_label = 0;
                 left_diagonal_label = 0;
                 right_diagonal_label = 0;
+                is_set = FALSE;
+                lowest = 99999;
 
                 /* Up */
                 if (i > 0 && pgm_image->data[((i-1) * pgm_image->width) + j]) {
                     up_label = label[((i-1) * pgm_image->width) + j];
                     label[(i * pgm_image->width) + j] = up_label;
+                    lowest = up_label;
                     is_set = TRUE;
                 }
                 /* Left */
-                if (j > 0 && pgm_image->data[(i*pgm_image->width) + (j-1)]) {
-                    left_label = label[(i * pgm_image->width) + (j-1)];
+                if (j > 0 && pgm_image->data[(i * pgm_image->width) + (j - 1)]) {
+                    left_label = label[(i * pgm_image->width) + (j - 1)];
                     label[(i * pgm_image->width) + j] = left_label;
+                    if (left_label < lowest) {
+                        lowest = left_label;
+                    }
                     is_set = TRUE;
                 }
                 /* Left diagonal */
                 if (i > 0 && j > 0 && pgm_image->data[((i-1) * pgm_image->width) + (j-1)]) {
                     left_diagonal_label = label[((i-1) * pgm_image->width) + (j-1)];
                     label[(i * pgm_image->width) + j] = left_diagonal_label;
+                    if (left_diagonal_label < lowest) {
+                        lowest = left_diagonal_label;
+                    }
                     is_set = TRUE;
                 }
                 /* Right diagonal */
-                if (i > 0 && pgm_image->data[((i-1) * pgm_image->width) + (j+1)]) {
-                    right_diagonal_label = label[((i-1) * pgm_image->width) + (j+1)];
+                if (i > 0 && pgm_image->data[((i - 1) * pgm_image->width) + (j + 1)]) {
+                    right_diagonal_label = label[((i - 1) * pgm_image->width) + (j + 1)];
                     label[(i * pgm_image->width) + j] = right_diagonal_label;
+                    if (right_diagonal_label < lowest) {
+                        lowest = right_diagonal_label;
+                    }
                     is_set = TRUE;
+                }
+                /* All neighboring pixels are black (background) */
+                if (!is_set) {
+                    label[(i * pgm_image->width) + j] = label_counter;
+                //    list_add_equivalency(list, label[(i * pgm_image->width) + j], label[(i * pgm_image->width) + j]);
+                    label_counter++;
+                }
+                else {
+                    label[(i * pgm_image->width) + j] = lowest;
+              //      list_add_equivalency(list, lowest, lowest);
                 }
 
                 /* Label collision */
                 if (left_label) {
+                    if (left_diagonal_label && left_diagonal_label != left_label) {
+                        list_add_equivalency(list, left_diagonal_label, left_label);
+                    }
                     if (up_label && up_label != left_label) {
-                        list_add(list, up_label, left_label);
-                       // equivalency_table_add(eq_table, left_label, up_label);
-                       has_collided = TRUE;
+                        list_add_equivalency(list, up_label, left_label);
                     }
-                    else if (left_diagonal_label && left_diagonal_label != left_label) {
-                        list_add(list, left_diagonal_label, left_label);
-                       // equivalency_table_add(left_label, diagonal_label);
-                        has_collided = TRUE;
-                    }
-                    else if (right_diagonal_label && right_diagonal_label != left_label) {
-                        list_add(list, right_diagonal_label, left_label);
-                        has_collided = TRUE;
-                    }
-
-                }
-                else if (up_label) {
-                    if (left_diagonal_label && left_diagonal_label != up_label) {
-                        list_add(list, left_diagonal_label, up_label);
-                       // equivalency_table_add(diagonal_label, up_label);
-                        has_collided = TRUE;
-                    }
-                    else if (right_diagonal_label && right_diagonal_label != up_label) {
-                        list_add(list, right_diagonal_label, up_label);
-                        has_collided = TRUE;
+                    if (right_diagonal_label && right_diagonal_label != left_label) {
+                        list_add_equivalency(list, right_diagonal_label, left_label);
                     }
                 }
-                else if (left_diagonal_label) {
+                if (left_diagonal_label) {
+                    if (up_label && up_label != left_diagonal_label) {
+                        list_add_equivalency(list, up_label, left_diagonal_label);
+                    }
                     if (right_diagonal_label && right_diagonal_label != left_diagonal_label) {
-                        list_add(list, left_diagonal_label, right_diagonal_label);
-                        has_collided = TRUE;
+                        list_add_equivalency(list, right_diagonal_label, left_diagonal_label);
                     }
                 }
-                /* All neighboring pixels are black (background) */
-                if (!is_set) {
-                    label[(i * pgm_image->width) + j] = label_counter++;
+                if (up_label) {
+                    if (right_diagonal_label && right_diagonal_label != up_label) {
+                        list_add_equivalency(list, right_diagonal_label, up_label);
+                    }
                 }
-                /* There was no collision */
-                if (!has_collided) {
-                    list_add(list, label[(i * pgm_image->width) + j], label[(i * pgm_image->width) + j]);
+                if (label[(pgm_image->width * i) + j] == 10) {
+                    printf("10: i: %d, j: %d; left:%d, left_diag:%d, up:%d, right_diag:%d\n", i, j, left_label, left_diagonal_label, up_label, right_diagonal_label);
                 }
-
             }
         }
     //    printf("\n");
@@ -245,39 +287,46 @@ void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->he
           }
           printf("\n");
       }*/
-
 }
 void replace_equivalent(pgm *pgm_image, linked_list *list, int label[pgm_image->height * pgm_image->width]) {
     int i, j;
     unsigned char current;
     linked_list *it;
 
-    for (i = 0; i < pgm_image->height; i++) {
-        for (j = 0; j < pgm_image->width; j++) {
-            current = pgm_image->data[(i * pgm_image->width) + j];
-
-            if (current) {
-
+    for (j = 0; j < 1; j++) { /* TODO smazat tenhle testovaci cyklus */
+        it = list;
+        while (it) {
+            for (i = 0; i < pgm_image->height * pgm_image->width; i++) {
+                if (label[i] == it->value) {
+                    label[i] = it->value2;
+                }
             }
+            it = it->next;
         }
     }
+
+
 }
 void repaint_image(unsigned char *output_data, pgm *input_image, int label[input_image->width * input_image->height]) {
     int i;
     int colors_size;
     int *colors;
-    linked_list *color_list = NULL;
+    linked_list *color_list = NULL, *it;
     colors = compute_colors(input_image, label, &colors_size, &color_list);
 
-    while(color_list) {
+    it = color_list;
+    while(it) {
         for (i = 0; i < input_image->width * input_image->height; i++) {
-            if (label[i] == color_list->value) {
-                output_data[i] = colors[color_list->value2];
+            if (label[i] == it->value) {
+                output_data[i] = colors[it->value2];
             }
         }
-        color_list = color_list->next;
+        it = it->next;
     }
 
+    list_free(&color_list);
+    free(colors);
+    colors = NULL;
 }
 int *compute_colors(pgm *pgm_image, int label[pgm_image->height * pgm_image->width], int *colors_size,
                     linked_list **color_list) {
