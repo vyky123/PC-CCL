@@ -5,10 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
+#include <limits.h>
 #include "linked_list.h"
 
 #define BUFFER_SIZE 256
 #define DEFAULT_GRAY 64
+#define MAX_GRAY_OFFSET 5
 
 #define ERR_1 1
 #define ERR_2 2
@@ -28,13 +30,8 @@ typedef struct thepgm {
     unsigned int max_value;
 } pgm;
 
-typedef struct theequivalency_set {
-    int color;
-
-} equivalency_set;
-
 //int process_file(char *filename);
-unsigned char *ccl(pgm *pgm_image, linked_list **list);
+unsigned char *ccl(pgm *pgm_image);
 int load_pgm(char *filename, pgm **pgm_image);
 int save_pgm(char *filename, pgm *pgm_image, unsigned char *data);
 void free_pgm(pgm *pgm_image);

@@ -1,5 +1,22 @@
 #include "ccl.h"
 
+void debug_print(pgm *pgm_image, int label[pgm_image->height * pgm_image->width]) { /* TODO smazat */
+    int i, j;
+    for (i = 0; i < pgm_image->height; i++) {
+        for (j = 0; j < pgm_image->width; j++) {
+            if (label[(i * pgm_image->width) + j]) {
+//                output_data[(i * pgm_image->width) + j] = pgm_image->max_value;
+                printf("%3u", (label[(i * pgm_image->width) + j]));
+            }
+            else {
+                //output_data[(i * pgm_image->width) + j] = 0;
+                printf("  .");
+            }
+        }
+        printf("\n");
+    }
+}
+
 void free_pgm(pgm *pgm_image) {
     free(pgm_image->data);
     free(pgm_image);
@@ -112,45 +129,26 @@ int save_pgm(char *filename, pgm *pgm_image, unsigned char *output_data) {
 
     fclose(f);
 }
-unsigned char *ccl(pgm *pgm_image, linked_list **list) {
+unsigned char *ccl(pgm *pgm_image) {
     int i, j;
     int label[pgm_image->height * pgm_image->width];
     unsigned char *output_data;
+    linked_list *list = NULL;
 
     memset(label, 0, (pgm_image->height * pgm_image->width) * sizeof(int));
-    find_foreground(pgm_image, list, label);
+    find_foreground(pgm_image, &list, label);
     printf("First iteration:\n");
-    for (i = 0; i < pgm_image->height; i++) {
-        for (j = 0; j < pgm_image->width; j++) {
-            if (label[(i * pgm_image->width) + j]) { /* TODO ne label[0], barvicky */
-//                output_data[(i * pgm_image->width) + j] = pgm_image->max_value;
-                printf("%u  ", (label[(i * pgm_image->width) + j]));
-            }
-            else {
-                //output_data[(i * pgm_image->width) + j] = 0;
-                printf(".  ");
-            }
-        }
-        printf("\n");
+    debug_print(pgm_image, label);
+    linked_list *it = list;
+    while(it) {
+        printf("[%d->%d] ", it->value, it->value2);
+        it = it->next;
     }
-
-
-    replace_equivalent(pgm_image, *list, label);
+    printf("\n");
+    replace_equivalent(pgm_image, list, label);
     printf("Second iteration:\n");
-    for (i = 0; i < pgm_image->height; i++) {
-        for (j = 0; j < pgm_image->width; j++) {
-            if (label[(i * pgm_image->width) + j]) { /* TODO ne label[0], barvicky */
-//                output_data[(i * pgm_image->width) + j] = pgm_image->max_value;
-                printf("%u  ", (label[(i * pgm_image->width) + j]));
-            }
-            else {
-                //output_data[(i * pgm_image->width) + j] = 0;
-                printf(".  ");
-            }
-        }
-        printf("\n");
-    }
-    linked_list *it = *list;
+    debug_print(pgm_image, label);
+    it = list;
     while(it) {
         printf("[%d->%d] ", it->value, it->value2);
         it = it->next;
@@ -162,19 +160,10 @@ unsigned char *ccl(pgm *pgm_image, linked_list **list) {
     repaint_image(output_data, pgm_image, label);
 
     printf("Final data:\n");
-    for (i = 0; i < pgm_image->height; i++) {
-        for (j = 0; j < pgm_image->width; j++) {
-            if (label[(i * pgm_image->width) + j]) { /* TODO ne label[0], barvicky */
-//                output_data[(i * pgm_image->width) + j] = pgm_image->max_value;
-                printf("%u  ", (label[(i * pgm_image->width) + j]));
-            }
-            else {
-                //output_data[(i * pgm_image->width) + j] = 0;
-                printf(".  ");
-            }
-        }
-        printf("\n");
-    }
+    debug_print(pgm_image, label);
+
+    list_free(&list);
+    list = NULL;
 
     return output_data;
 }
@@ -196,7 +185,7 @@ void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->he
                 left_diagonal_label = 0;
                 right_diagonal_label = 0;
                 is_set = FALSE;
-                lowest = 99999;
+                lowest = INT_MAX;
 
                 /* Up */
                 if (i > 0 && pgm_image->data[((i-1) * pgm_image->width) + j]) {
@@ -235,46 +224,69 @@ void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->he
                 /* All neighboring pixels are black (background) */
                 if (!is_set) {
                     label[(i * pgm_image->width) + j] = label_counter;
-                //    list_add_equivalency(list, label[(i * pgm_image->width) + j], label[(i * pgm_image->width) + j]);
                     label_counter++;
                 }
                 else {
                     label[(i * pgm_image->width) + j] = lowest;
-              //      list_add_equivalency(list, lowest, lowest);
                 }
 
                 /* Label collision */
                 if (left_label) {
+                    add_equivalency(list, left_label, lowest);
                     if (left_diagonal_label && left_diagonal_label != left_label) {
-                        list_add_equivalency(list, left_diagonal_label, left_label);
+                        add_equivalency(list, left_label, lowest);
+                        add_equivalency(list, left_diagonal_label, lowest);
+
                     }
                     if (up_label && up_label != left_label) {
-                        list_add_equivalency(list, up_label, left_label);
+                        add_equivalency(list, left_label, lowest);
+                        add_equivalency(list, up_label, lowest);
                     }
                     if (right_diagonal_label && right_diagonal_label != left_label) {
-                        list_add_equivalency(list, right_diagonal_label, left_label);
+                        add_equivalency(list, left_label, lowest);
+                        add_equivalency(list, right_diagonal_label, lowest);
                     }
                 }
                 if (left_diagonal_label) {
+                    add_equivalency(list, left_diagonal_label, lowest);
                     if (up_label && up_label != left_diagonal_label) {
-                        list_add_equivalency(list, up_label, left_diagonal_label);
+                        add_equivalency(list, left_diagonal_label, lowest);
+                        add_equivalency(list, up_label, lowest);
                     }
                     if (right_diagonal_label && right_diagonal_label != left_diagonal_label) {
-                        list_add_equivalency(list, right_diagonal_label, left_diagonal_label);
+                        add_equivalency(list, left_diagonal_label, lowest);
+                        add_equivalency(list, right_diagonal_label, lowest);
                     }
                 }
                 if (up_label) {
+                    add_equivalency(list, up_label, lowest);
                     if (right_diagonal_label && right_diagonal_label != up_label) {
-                        list_add_equivalency(list, right_diagonal_label, up_label);
+                        add_equivalency(list, up_label, lowest);
+                        add_equivalency(list, right_diagonal_label, lowest);
                     }
                 }
-                if (label[(pgm_image->width * i) + j] == 10) {
-                    printf("10: i: %d, j: %d; left:%d, left_diag:%d, up:%d, right_diag:%d\n", i, j, left_label, left_diagonal_label, up_label, right_diagonal_label);
+                if (right_diagonal_label) {
+                    add_equivalency(list, right_diagonal_label, lowest);
+                }
+
+
+                if (j == 30 && i == 116) {
+                    printf("\n");
+                    linked_list *it = *list;
+                    while(it) {
+                        printf("[%d->%d] ", it->value, it->value2);
+                        it = it->next;
+                    }
+                    printf("\n");
+                    printf("%d---left:%d left_diag:%d up:%d right_diag:%d\n", label[(i * pgm_image->width) + j], left_label, left_diagonal_label, up_label, right_diagonal_label);
+                    printf("\n");
                 }
             }
         }
     //    printf("\n");
     }
+
+
     /*  printf("\n");
       for (i = 0; i < pgm_image->height; i++) {
           for (j = 0; j < pgm_image->width; j++) {
@@ -290,14 +302,13 @@ void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->he
 }
 void replace_equivalent(pgm *pgm_image, linked_list *list, int label[pgm_image->height * pgm_image->width]) {
     int i, j;
-    unsigned char current;
     linked_list *it;
 
     for (j = 0; j < 1; j++) { /* TODO smazat tenhle testovaci cyklus */
         it = list;
         while (it) {
-            for (i = 0; i < pgm_image->height * pgm_image->width; i++) {
-                if (label[i] == it->value) {
+            for (i = 0; i < pgm_image->width * pgm_image->height; i++) {
+                if (it->value == label[i]) {
                     label[i] = it->value2;
                 }
             }
@@ -318,7 +329,8 @@ void repaint_image(unsigned char *output_data, pgm *input_image, int label[input
     while(it) {
         for (i = 0; i < input_image->width * input_image->height; i++) {
             if (label[i] == it->value) {
-                output_data[i] = colors[it->value2];
+        //        printf("AAAA: %d\n", colors[it->value2]);
+                output_data[i] = colors[it->value2 - 1]; /* TODO - 1 */
             }
         }
         it = it->next;
@@ -336,10 +348,11 @@ int *compute_colors(pgm *pgm_image, int label[pgm_image->height * pgm_image->wid
 
     for (i = 0; i < pgm_image->height * pgm_image->width; i++) {
         if(label[i] && !list_contains(*color_list, label[i])) {
-            list_add(&(*color_list), label[i], color_counter++);
+            list_add(&(*color_list), label[i], color_counter);
+            color_counter++;
         }
     }
-    *colors_size = (*color_list)->value2 + 1;
+    *colors_size = color_counter - 1; /* TODO +1 nebo ne */
     colors = malloc(sizeof(int) * (*colors_size));
     
     if (!colors) {
@@ -348,12 +361,15 @@ int *compute_colors(pgm *pgm_image, int label[pgm_image->height * pgm_image->wid
     }
     memset(colors, 0, sizeof(int) * (*colors_size));
 
-    if (*colors_size >= 1) {
+    if (*colors_size >= 2) {
+        printf("COLOR SIZE: %d\n", *colors_size);
         for (i = 0; i < (*colors_size); i++) {
-            colors[i] = ((int) (pgm_image->max_value - 1) / (*colors_size)) * (i + 1);
+            colors[i] = ((int) (pgm_image->max_value - MAX_GRAY_OFFSET) / (*colors_size)) * (i + 1);
+            printf("Barva: %d\n",colors[i]);
         }
     }
     else {
+        printf("NE, COLOR SIZE: %d\n", *colors_size);
         colors[0] = DEFAULT_GRAY;
     }
     return colors;
