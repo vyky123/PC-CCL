@@ -150,6 +150,7 @@ unsigned char *ccl(pgm *pgm_image) {
     find_foreground(pgm_image, &list, label);
     printf("First iteration:\n");
     debug_print(pgm_image, label);
+    list_sort(&list);
     linked_list *it = list;
     while(it) {
         printf("[%d->%d] ", it->value, it->value2);
@@ -252,7 +253,7 @@ void find_foreground(pgm *pgm_image, linked_list **list, int *label) {
                 }
                 else {
                     label[(i * pgm_image->width) + j] = lowest;
-                    add_equivalency(list, biggest, lowest);
+                    update_equivalencies(list, biggest, lowest);
                 }
                 /* Label collision */
 /*//                if (left_label) {

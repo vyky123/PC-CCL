@@ -13,13 +13,12 @@ typedef struct thelinked_list {
 //    int values[256]; /* TODO */
 //} linked_arrays;
 
-
+void swap(linked_list *first, linked_list *second);
+int list_sort(linked_list **head);
 int list_add(linked_list **head, int value, int value2);
 int list_contains(linked_list *head, int value);
 void list_free(linked_list **head);
-void arrays_free(linked_list **head);
 int add_equivalency(linked_list **list, int value, int value2);
-int add_equivalency2(linked_list **list, int value, int value2);
-int update_equivalencies(linked_list *list, int value, int value2);
+int update_equivalencies(linked_list **list, int value, int value2);
 
 #endif

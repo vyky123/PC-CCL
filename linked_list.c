@@ -1,44 +1,86 @@
 #include "ccl.h"
-int add_equivalency2(linked_list **list, int value, int value2) {
+int add_equivalency2(linked_list **head, int value, int value2) {
     linked_list *temp = malloc(sizeof(linked_list));
+    int temp_value;
+
     if (!temp) {
         printf("ERR#3: Memory allocation was unsuccesful!\n");
         exit(ERR_3);
     }
 
+    if (value < value2) {
+        temp_value = value;
+        value = value2;
+        value2 = temp_value;
+    }
+
     temp->value = value;
     temp->value2 = value2;
-    temp->next = *list;
-    *list = temp;
+    temp->next = *head;
+    *head = temp;
 
     return TRUE;
 }
-int add_equivalency(linked_list **list, int value, int value2) {
-    if (!update_equivalencies(*list, value, value2)) {
-        linked_list *temp = malloc(sizeof(linked_list));
-        if (!temp) {
-            printf("ERR#3: Memory allocation was unsuccesful!\n");
-            exit(ERR_3);
+int list_sort(linked_list **head) {
+    int swapped;
+    linked_list *temp;
+    linked_list *temp2 = NULL;
+    do {
+        swapped = FALSE;
+        temp = *head;
+
+        while (temp->next != temp2) {
+            if (temp->value < temp->next->value) {
+                swap(temp, temp->next);
+                swapped = TRUE;
+            }
+            temp = temp->next;
         }
-
-        temp->value = value;
-        temp->value2 = value2;
-        temp->next = *list;
-        *list = temp;
-
-        //   printf("New equivalency: %d -> %d \n", temp->value, temp->value2);
-        return TRUE;
+        temp2 = temp;
     }
-    return FALSE;
+    while (swapped);
+    return TRUE;
 }
 
-int update_equivalencies(linked_list *head, int value, int value2) {
-    linked_list *it, *it2;
-    if (!head) {
-        return FALSE;
-    }
 
-    it = head;
+void swap(linked_list *first, linked_list *second) {
+    int temp = first->value;
+
+    first->value = second->value;
+    second->value = temp;
+    temp = first->value2;
+    first->value2 = second->value2;
+    second->value2 = temp;
+}
+
+int add_equivalency(linked_list **head, int value, int value2) {
+    linked_list *temp = malloc(sizeof(linked_list));
+    if (!temp) {
+        printf("ERR#3: Memory allocation was unsuccesful!\n");
+        exit(ERR_3);
+    }
+    temp->value = value;
+    temp->value2 = value2;
+    temp->next = *head;
+    *head = temp;
+
+    //   printf("New equivalency: %d -> %d \n", temp->value, temp->value2);
+    return TRUE;
+}
+
+int update_equivalencies(linked_list **head, int value, int value2) {
+    linked_list *it, *it2;
+    int temp;
+
+    if (value == value2) {
+        return TRUE;
+    }
+    if (value < value2) {
+        temp = value;
+        value = value2;
+        value2 = temp;
+    }
+    it = *head;
     /* Goes through the linked list and tries to find equal value to the new value */
     while(it) {
         /* The first value is in the list */
@@ -50,36 +92,41 @@ int update_equivalencies(linked_list *head, int value, int value2) {
             }
 
             /* The second value of equivalency list is different and might need to be updated */
-            if (it->value2 != value2) {
-
-
-
-                it2 = head;
-                while (it2) {
-//                    if (it2->value == value) {
-//                        it2->value = value2;
-//                    }
-                    if (it2->value2 == it->value2) {
-                        it2->value2 = value2;
-                    }
-                    if (it2->value == value) {
-                        if (it2->value2 != value2) {
-//                            value = it2->value2;
-                            add_equivalency2(&head, it2->value2, value2);
-                            return TRUE;
-                        }
-                        it2->value2 = value2;
-                    }
-
-                    it2 = it2->next;
+            else {
+                if (!update_equivalencies(head, value2, it->value2)) {
+                    printf("Novinka: %d -> %d\n", value2, it->value2);
+                    return FALSE;
                 }
-//                it->value = value;
+
+                it2 = *head;
+////                while (it2) {
+//////                    if (it2->value == value) {
+//////                        it2->value = value2;
+////                    }
+////                  if (it2->value2 == it->value2) {
+////                        it2->value2 = value2;
+////                    }
+////
+////                    it2 = it2->next;
+////                }
+              //  it->value = value;
                 it->value2 = value2;
+                return TRUE;
             }
-            return TRUE;
+
         }
         it = it->next;
     }
+
+//    it = head;
+//    while(it) {
+//        /* The first value is in the list */
+//        if (!(it->value == value && it->value2 == value2)) {
+//            add_equivalency2(&head, value, value2);
+//        }
+//        it = it->next;
+//    }
+    add_equivalency(head, value, value2);
     return FALSE;
 }
 int list_contains(linked_list *head, int value) {
