@@ -1,6 +1,6 @@
 #include "ccl.h"
 
-void debug_print(pgm *pgm_image, int label[pgm_image->height * pgm_image->width]) { /* TODO smazat */
+void debug_print(pgm *pgm_image, int *label) { /* TODO smazat */
     int i, j;
     for (i = 0; i < pgm_image->height; i++) {
         for (j = 0; j < pgm_image->width; j++) {
@@ -24,11 +24,13 @@ void free_pgm(pgm *pgm_image) {
 int load_pgm(char *filename, pgm **pgm_image) {
     unsigned char ch;
     char line_buffer[BUFFER_SIZE];
-    int  i, j, value[3];
+    int  i, j;
+    int value[3];
     unsigned char char1, char2;
     unsigned char *ptr, *pixels;
     unsigned int width, height, max_value;
-    FILE *f = fopen(filename, "rb"); /* Opens a file stream to variable f in a "read binary" mode */
+    /* Opens a file stream to variable f in a "read binary" mode */
+    FILE *f = fopen(filename, "rb");
 
 
     fscanf(f, "%c%c", &char1, &char2);
@@ -38,25 +40,26 @@ int load_pgm(char *filename, pgm **pgm_image) {
         exit(ERR_2);
     }
 
-    for (j = 0; j < 3; j++) {
-        i = 0;
+    for (i = 0; i < 3; i++) {
+        j = 0;
         ch = (char)fgetc(f);
-        line_buffer[i] = 0;
-
-        i = 0;
-        line_buffer[i++] = ch;
+        line_buffer[j] = 0;
+        line_buffer[j] = ch;
+        j++;
         do {
             ch = (char)fgetc(f);
-            line_buffer[i++] = ch;
+            line_buffer[j] = ch;
+            j++;
         }
         while(ch >= '0' && ch <= '9');
-        line_buffer[i - 1] = 0;
-        value[j] = atoi(line_buffer);
+        line_buffer[j - 1] = 0;
+        value[i] = atoi(line_buffer);
     }
 
     width  = value[0];
     height = value[1];
     max_value = value[2];
+
     pixels = (unsigned char *)malloc (height * width);
 
     if (!pixels) {
@@ -131,11 +134,19 @@ int save_pgm(char *filename, pgm *pgm_image, unsigned char *output_data) {
 }
 unsigned char *ccl(pgm *pgm_image) {
     int i, j;
-    int label[pgm_image->height * pgm_image->width];
+    int *label;
     unsigned char *output_data;
     linked_list *list = NULL;
 
-    memset(label, 0, (pgm_image->height * pgm_image->width) * sizeof(int));
+    label = malloc((pgm_image->height * pgm_image->width) * sizeof(int));
+
+    if(!label) {
+        printf("ERR#3: Memory allocation was unsuccesful!\n");
+        exit(ERR_3);
+    }
+
+    memset(label, 0,  (pgm_image->height * pgm_image->width) * sizeof(int));
+
     find_foreground(pgm_image, &list, label);
     printf("First iteration:\n");
     debug_print(pgm_image, label);
@@ -148,31 +159,33 @@ unsigned char *ccl(pgm *pgm_image) {
     replace_equivalent(pgm_image, list, label);
     printf("Second iteration:\n");
     debug_print(pgm_image, label);
-    it = list;
-    while(it) {
-        printf("[%d->%d] ", it->value, it->value2);
-        it = it->next;
-    }
-    printf("\n");
+//    it = list;
+//    while(it) {
+//        printf("[%d->%d] ", it->value, it->value2);
+//        it = it->next;
+//    }
+//    printf("\n");
+
 
     output_data = malloc(sizeof(unsigned char) * (pgm_image->width * pgm_image->height));
     memset(output_data, 0, sizeof(unsigned char) * (pgm_image->width * pgm_image->height));
     repaint_image(output_data, pgm_image, label);
 
+
     printf("Final data:\n");
-    debug_print(pgm_image, label);
-
+ //   debug_print(pgm_image, label);
+    free(label);
+    label = NULL;
     list_free(&list);
-    list = NULL;
-
+//    arrays_free(&list);
     return output_data;
 }
-void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->height * pgm_image->width]) {
+void find_foreground(pgm *pgm_image, linked_list **list, int *label) {
     int i, j;
     unsigned char current;
     int left_label, up_label, left_diagonal_label, right_diagonal_label;
     int label_counter = 1;
-    int lowest;
+    int lowest, biggest;
     int is_set;
 
     for (i = 0; i < pgm_image->height; i++) {
@@ -186,12 +199,14 @@ void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->he
                 right_diagonal_label = 0;
                 is_set = FALSE;
                 lowest = INT_MAX;
+                biggest = INT_MIN;
 
                 /* Up */
-                if (i > 0 && pgm_image->data[((i-1) * pgm_image->width) + j]) {
-                    up_label = label[((i-1) * pgm_image->width) + j];
+                if (i > 0 && pgm_image->data[((i - 1) * pgm_image->width) + j]) {
+                    up_label = label[((i - 1) * pgm_image->width) + j];
                     label[(i * pgm_image->width) + j] = up_label;
                     lowest = up_label;
+                    biggest = up_label;
                     is_set = TRUE;
                 }
                 /* Left */
@@ -200,6 +215,9 @@ void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->he
                     label[(i * pgm_image->width) + j] = left_label;
                     if (left_label < lowest) {
                         lowest = left_label;
+                    }
+                    if (left_label > biggest) {
+                        biggest = left_label;
                     }
                     is_set = TRUE;
                 }
@@ -210,14 +228,20 @@ void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->he
                     if (left_diagonal_label < lowest) {
                         lowest = left_diagonal_label;
                     }
+                    if (left_diagonal_label > biggest) {
+                        biggest = left_diagonal_label;
+                    }
                     is_set = TRUE;
                 }
                 /* Right diagonal */
-                if (i > 0 && pgm_image->data[((i - 1) * pgm_image->width) + (j + 1)]) {
+                if (i > 0 && (j < pgm_image->width - 1) && pgm_image->data[((i - 1) * pgm_image->width) + (j + 1)]) {
                     right_diagonal_label = label[((i - 1) * pgm_image->width) + (j + 1)];
                     label[(i * pgm_image->width) + j] = right_diagonal_label;
                     if (right_diagonal_label < lowest) {
                         lowest = right_diagonal_label;
+                    }
+                    if (right_diagonal_label > biggest) {
+                        biggest = right_diagonal_label;
                     }
                     is_set = TRUE;
                 }
@@ -228,59 +252,60 @@ void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->he
                 }
                 else {
                     label[(i * pgm_image->width) + j] = lowest;
+                    add_equivalency(list, biggest, lowest);
                 }
-
                 /* Label collision */
-                if (left_label) {
+/*//                if (left_label) {
                     add_equivalency(list, left_label, lowest);
                     if (left_diagonal_label && left_diagonal_label != left_label) {
-                        add_equivalency(list, left_label, lowest);
+                        add_equivalency(list, left_label, left_diagonal_label);
                         add_equivalency(list, left_diagonal_label, lowest);
 
                     }
                     if (up_label && up_label != left_label) {
-                        add_equivalency(list, left_label, lowest);
+                        add_equivalency(list, left_label, up_label);
                         add_equivalency(list, up_label, lowest);
                     }
                     if (right_diagonal_label && right_diagonal_label != left_label) {
-                        add_equivalency(list, left_label, lowest);
+                        add_equivalency(list, left_label, right_diagonal_label);
                         add_equivalency(list, right_diagonal_label, lowest);
                     }
                 }
                 if (left_diagonal_label) {
                     add_equivalency(list, left_diagonal_label, lowest);
                     if (up_label && up_label != left_diagonal_label) {
-                        add_equivalency(list, left_diagonal_label, lowest);
+                        add_equivalency(list, left_diagonal_label, up_label);
                         add_equivalency(list, up_label, lowest);
                     }
                     if (right_diagonal_label && right_diagonal_label != left_diagonal_label) {
-                        add_equivalency(list, left_diagonal_label, lowest);
+                        add_equivalency(list, left_diagonal_label, right_diagonal_label);
                         add_equivalency(list, right_diagonal_label, lowest);
                     }
                 }
                 if (up_label) {
                     add_equivalency(list, up_label, lowest);
                     if (right_diagonal_label && right_diagonal_label != up_label) {
-                        add_equivalency(list, up_label, lowest);
+                        add_equivalency(list, up_label, right_diagonal_label);
                         add_equivalency(list, right_diagonal_label, lowest);
                     }
                 }
                 if (right_diagonal_label) {
                     add_equivalency(list, right_diagonal_label, lowest);
-                }
+                }*/
 
 
-                if (j == 30 && i == 116) {
+                if (label[(i * pgm_image->width) + j] == 27) { //j == 30, i == 116 pro 19ku
                     printf("\n");
-                    linked_list *it = *list;
+                    linked_list *it = *list; /* TODO 20 -> 19 ale 20 sousedi se 17, ktera jde do 1 */
                     while(it) {
                         printf("[%d->%d] ", it->value, it->value2);
                         it = it->next;
                     }
                     printf("\n");
-                    printf("%d---left:%d left_diag:%d up:%d right_diag:%d\n", label[(i * pgm_image->width) + j], left_label, left_diagonal_label, up_label, right_diagonal_label);
+                    printf("%d---left:%d left_diag:%d up:%d right_diag:%d biggest:%d smallest:%d\n",
+                           label[(i * pgm_image->width) + j], left_label, left_diagonal_label, up_label, right_diagonal_label, biggest, lowest);
                     printf("\n");
-                }
+                    }
             }
         }
     //    printf("\n");
@@ -300,12 +325,13 @@ void find_foreground(pgm *pgm_image, linked_list **list, int label[pgm_image->he
           printf("\n");
       }*/
 }
-void replace_equivalent(pgm *pgm_image, linked_list *list, int label[pgm_image->height * pgm_image->width]) {
+void replace_equivalent(pgm *pgm_image, linked_list *list, int *label) {
     int i, j;
     linked_list *it;
 
     for (j = 0; j < 1; j++) { /* TODO smazat tenhle testovaci cyklus */
         it = list;
+
         while (it) {
             for (i = 0; i < pgm_image->width * pgm_image->height; i++) {
                 if (it->value == label[i]) {
@@ -340,7 +366,7 @@ void repaint_image(unsigned char *output_data, pgm *input_image, int label[input
     free(colors);
     colors = NULL;
 }
-int *compute_colors(pgm *pgm_image, int label[pgm_image->height * pgm_image->width], int *colors_size,
+int *compute_colors(pgm *pgm_image, int *label, int *colors_size,
                     linked_list **color_list) {
     int i;
     int color_counter = 1;

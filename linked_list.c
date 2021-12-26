@@ -1,22 +1,35 @@
 #include "ccl.h"
-
-int add_equivalency(linked_list **table, int value, int value2) {
-    if (update_equivalencies(*table, value, value2)) {
-        return TRUE;
-    }
-
+int add_equivalency2(linked_list **list, int value, int value2) {
     linked_list *temp = malloc(sizeof(linked_list));
     if (!temp) {
-        return FALSE;
+        printf("ERR#3: Memory allocation was unsuccesful!\n");
+        exit(ERR_3);
     }
 
     temp->value = value;
     temp->value2 = value2;
-    temp->next = *table;
-    *table = temp;
+    temp->next = *list;
+    *list = temp;
 
-    printf("New equivalency: %d -> %d \n", temp->value, temp->value2);
     return TRUE;
+}
+int add_equivalency(linked_list **list, int value, int value2) {
+    if (!update_equivalencies(*list, value, value2)) {
+        linked_list *temp = malloc(sizeof(linked_list));
+        if (!temp) {
+            printf("ERR#3: Memory allocation was unsuccesful!\n");
+            exit(ERR_3);
+        }
+
+        temp->value = value;
+        temp->value2 = value2;
+        temp->next = *list;
+        *list = temp;
+
+        //   printf("New equivalency: %d -> %d \n", temp->value, temp->value2);
+        return TRUE;
+    }
+    return FALSE;
 }
 
 int update_equivalencies(linked_list *head, int value, int value2) {
@@ -26,26 +39,44 @@ int update_equivalencies(linked_list *head, int value, int value2) {
     }
 
     it = head;
-    //   printf("T1: %d %d\n", it->value, it->value2);
+    /* Goes through the linked list and tries to find equal value to the new value */
     while(it) {
+        /* The first value is in the list */
         if(it->value == value) {
+
+            /* Both values are already present in the list */
             if (it->value2 == value2) {
                 return TRUE;
             }
-            if (it->value2 != value2 && value2 < it->value2) {
-                it->value2 = value2;
+
+            /* The second value of equivalency list is different and might need to be updated */
+            if (it->value2 != value2) {
+
+
 
                 it2 = head;
-//                printf("T1: %d %d; T2: %d %d (%d %d)\n", it->value, it->value2, it2->value, it2->value2, (*head)->value, (*head)->value2);
                 while (it2) {
-                    if (it2->value2 == it->value2 && value2 < it2->value2) {
-                        it2->value2 = it->value2;
-                        return TRUE;
+//                    if (it2->value == value) {
+//                        it2->value = value2;
+//                    }
+                    if (it2->value2 == it->value2) {
+                        it2->value2 = value2;
                     }
+                    if (it2->value == value) {
+                        if (it2->value2 != value2) {
+//                            value = it2->value2;
+                            add_equivalency2(&head, it2->value2, value2);
+                            return TRUE;
+                        }
+                        it2->value2 = value2;
+                    }
+
                     it2 = it2->next;
                 }
-                return TRUE;
+//                it->value = value;
+                it->value2 = value2;
             }
+            return TRUE;
         }
         it = it->next;
     }
@@ -70,6 +101,7 @@ int list_contains(linked_list *head, int value) {
     }
     return FALSE;
 }
+
 int list_add(linked_list **head, int value, int value2) {
     linked_list *temp;
 
@@ -92,7 +124,6 @@ int list_add(linked_list **head, int value, int value2) {
 
     return TRUE;
 }
-
 void list_free(linked_list **head) {
     linked_list *next;
 
