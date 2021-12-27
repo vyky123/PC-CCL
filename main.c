@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
     pgm *pgm_image = NULL;
     unsigned char *output_data = NULL;
 
-    if (argc != 3 || !input_filename || !output_filename) {
+    if (argc != 3) {
         printf("ERR#1: Wrong input!\n");
         return ERR_1;
     }
