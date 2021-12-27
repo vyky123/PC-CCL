@@ -1,117 +1,106 @@
 #include "ccl.h"
 
-void debug_print(pgm *pgm_image, int *label) { /* TODO smazat */
-    int i, j;
-    for (i = 0; i < pgm_image->height; i++) {
-        for (j = 0; j < pgm_image->width; j++) {
-            if (label[(i * pgm_image->width) + j]) {
-//                output_data[(i * pgm_image->width) + j] = pgm_image->max_value;
-                printf("%3u", (label[(i * pgm_image->width) + j]));
-            }
-            else {
-                //output_data[(i * pgm_image->width) + j] = 0;
-                printf("  .");
-            }
-        }
-        printf("\n");
-    }
-}
 
-void free_pgm(pgm *pgm_image) {
-    free(pgm_image->data);
-    free(pgm_image);
-}
-int load_pgm(char *filename, pgm **pgm_image) {
+void load_pgm(char *filename, pgm **pgm_image) {
     unsigned char ch;
-    char line_buffer[BUFFER_SIZE];
-    int  i, j;
-    int value[3];
-    unsigned char char1, char2;
+    char value_buffer[BUFFER_SIZE];
+    int i, j;
+    unsigned int value[3];
+    unsigned char char1, char2, char3;
     unsigned char *ptr, *pixels;
     unsigned int width, height, max_value;
     /* Opens a file stream to variable f in a "read binary" mode */
     FILE *f = fopen(filename, "rb");
 
+    /* Loads first 3 chars into char variables */
+    fscanf(f, "%c%c%c", &char1, &char2, &char3);
 
-    fscanf(f, "%c%c", &char1, &char2);
-    if (char1 != 'P' || (char2 != '5')) {
+    /* Checks if the first line is "P5\n" */
+    if (char1 != 'P' || (char2 != '5') || (char3 != '\n')) {
+        printf("ERR#2: Wrong PGM format!");
+        fclose(f);
+        exit(ERR_2);
+    }
+    /* Goes char by char through second and third line and gets 3 values from these lines */
+    for (i = 0; i < 3; i++) {
+        j = 0;
+        ch = (char) fgetc(f);
+        value_buffer[j] = (char) ch;
+        j++;
+        /* Gets char and adds it into the buffer until the value ends
+         * (until the next char is not a space or new line) */
+        while (ch != ' ' && ch != '\n') {
+            ch = (char) fgetc(f);
+            if ((ch < '0' || ch > '9') && (ch != ' ' && ch != '\n')) {
+                printf("ERR#2: Wrong PGM format!");
+                fclose(f);
+                exit(ERR_2);
+            }
+            value_buffer[j] = (char) ch;
+            j++;
+        }
+
+        value[i] = atoi(value_buffer);
+    }
+    /* 3 values gotten from previous loop are width, height and max value */
+    width = value[0];
+    height = value[1];
+    max_value = value[2];
+
+    /* If max value of PGM is not white, exits the program */
+    if (max_value != WHITE_VALUE) {
         printf("ERR#2: Wrong PGM format!");
         fclose(f);
         exit(ERR_2);
     }
 
-    for (i = 0; i < 3; i++) {
-        j = 0;
-        ch = (char)fgetc(f);
-        line_buffer[j] = 0;
-        line_buffer[j] = ch;
-        j++;
-        do {
-            ch = (char)fgetc(f);
-            line_buffer[j] = ch;
-            j++;
-        }
-        while(ch >= '0' && ch <= '9');
-        line_buffer[j - 1] = 0;
-        value[i] = atoi(line_buffer);
-    }
-
-    width  = value[0];
-    height = value[1];
-    max_value = value[2];
-
-    pixels = (unsigned char *)malloc (height * width);
+    pixels = (unsigned char *) malloc(height * width);
 
     if (!pixels) {
-        printf("ERR#3: Memory allocation was unsuccesful!\n");
+        printf("ERR#3: Memory allocation was unsuccessful!\n");
         exit(ERR_3);
     }
-
 
     ptr = pixels;
     for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
-            fscanf(f,"%c", &ch);
-            if ( ((unsigned char) ch != max_value && (unsigned char) ch != 0) ) {
+            fscanf(f, "%c", &ch);
+            /* If pixel is not black or white, PGM format is wrong */
+            if (((unsigned char) ch != WHITE_VALUE && (unsigned char) ch != 0)) {
                 printf("ERR#2: Wrong PGM format!");
+                free(pixels);
                 exit(ERR_2);
             }
             *ptr++ = ch;
         }
     }
-    /*   for (i = 0; i < height; i++) {
-           for (j = 0; j < width; j++) {
-               if(pixels[(i * width) + j] == 255) {
-                   printf(". ");
-               }
-               else {
-                   printf("%d ", pixels[(i * width) + j]);
-               }
-           }
-           printf("\n");
-       }
-   */
-    *pgm_image = (pgm *)malloc(sizeof(pgm));
+    *pgm_image = (pgm *) malloc(sizeof(pgm));
 
     if (!*pgm_image) {
-        printf("ERR#3: Memory allocation was unsuccesful!\n");
+        printf("ERR#3: Memory allocation was unsuccessful!\n");
         exit(ERR_3);
     }
 
     (*pgm_image)->height = height;
     (*pgm_image)->width = width;
-    (*pgm_image)->max_value = max_value;
-    (*pgm_image)->data = malloc((width * height) * sizeof(unsigned char));
+    (*pgm_image)->data = (unsigned char *) malloc((width * height) * sizeof(unsigned char));
+
+    if (!(*pgm_image)->data) {
+        printf("ERR#3: Memory allocation was unsuccessful!\n");
+        free(pixels);
+        free(*pgm_image);
+        exit(ERR_3);
+    }
+
     memcpy((*pgm_image)->data, pixels, width * height * sizeof(unsigned char));
 
     fclose(f);
     free(pixels);
-    return TRUE;
 }
-int save_pgm(char *filename, pgm *pgm_image, unsigned char *output_data) {
+
+void save_pgm(char *filename, pgm *pgm_image, unsigned char *output_data) {
     int i, j;
     FILE *f = fopen(filename, "w");
-    pgm *output_image;
     char *first_line = "P5\n";
 
     if (!f) {
@@ -119,11 +108,12 @@ int save_pgm(char *filename, pgm *pgm_image, unsigned char *output_data) {
         exit(ERR_4);
     }
 
-    /* Print to file */
+    /* Prints the first 3 lines to a file */
     fprintf(f, "%s", first_line);
     fprintf(f, "%d %d\n", pgm_image->width, pgm_image->height);
-    fprintf(f, "%u\n", pgm_image->max_value);
+    fprintf(f, "%u\n", WHITE_VALUE);
 
+    /* Prints image data to the file */
     for (i = 0; i < pgm_image->height; i++) {
         for (j = 0; j < pgm_image->width; j++) {
             fprintf(f, "%c", output_data[(i * pgm_image->width) + j]);
@@ -132,272 +122,8 @@ int save_pgm(char *filename, pgm *pgm_image, unsigned char *output_data) {
 
     fclose(f);
 }
-unsigned char *ccl(pgm *pgm_image) {
-    int i, j;
-    int *label;
-    unsigned char *output_data;
-    linked_list *list = NULL;
 
-    label = malloc((pgm_image->height * pgm_image->width) * sizeof(int));
-
-    if(!label) {
-        printf("ERR#3: Memory allocation was unsuccesful!\n");
-        exit(ERR_3);
-    }
-
-    memset(label, 0,  (pgm_image->height * pgm_image->width) * sizeof(int));
-
-    find_foreground(pgm_image, &list, label);
-    printf("First iteration:\n");
-    debug_print(pgm_image, label);
-    list_sort(&list);
-    linked_list *it = list;
-    while(it) {
-        printf("[%d->%d] ", it->value, it->value2);
-        it = it->next;
-    }
-    printf("\n");
-    replace_equivalent(pgm_image, list, label);
-    printf("Second iteration:\n");
-    debug_print(pgm_image, label);
-//    it = list;
-//    while(it) {
-//        printf("[%d->%d] ", it->value, it->value2);
-//        it = it->next;
-//    }
-//    printf("\n");
-
-
-    output_data = malloc(sizeof(unsigned char) * (pgm_image->width * pgm_image->height));
-    memset(output_data, 0, sizeof(unsigned char) * (pgm_image->width * pgm_image->height));
-    repaint_image(output_data, pgm_image, label);
-
-
-    printf("Final data:\n");
- //   debug_print(pgm_image, label);
-    free(label);
-    label = NULL;
-    list_free(&list);
-//    arrays_free(&list);
-    return output_data;
-}
-void find_foreground(pgm *pgm_image, linked_list **list, int *label) {
-    int i, j;
-    unsigned char current;
-    int left_label, up_label, left_diagonal_label, right_diagonal_label;
-    int label_counter = 1;
-    int lowest, biggest;
-    int is_set;
-
-    for (i = 0; i < pgm_image->height; i++) {
-        for (j = 0; j < pgm_image->width; j++) {
-            current = pgm_image->data[(i * pgm_image->width) + j];
-
-            if (current) {
-                left_label = 0;
-                up_label = 0;
-                left_diagonal_label = 0;
-                right_diagonal_label = 0;
-                is_set = FALSE;
-                lowest = INT_MAX;
-                biggest = INT_MIN;
-
-                /* Up */
-                if (i > 0 && pgm_image->data[((i - 1) * pgm_image->width) + j]) {
-                    up_label = label[((i - 1) * pgm_image->width) + j];
-                    label[(i * pgm_image->width) + j] = up_label;
-                    lowest = up_label;
-                    biggest = up_label;
-                    is_set = TRUE;
-                }
-                /* Left */
-                if (j > 0 && pgm_image->data[(i * pgm_image->width) + (j - 1)]) {
-                    left_label = label[(i * pgm_image->width) + (j - 1)];
-                    label[(i * pgm_image->width) + j] = left_label;
-                    if (left_label < lowest) {
-                        lowest = left_label;
-                    }
-                    if (left_label > biggest) {
-                        biggest = left_label;
-                    }
-                    is_set = TRUE;
-                }
-                /* Left diagonal */
-                if (i > 0 && j > 0 && pgm_image->data[((i-1) * pgm_image->width) + (j-1)]) {
-                    left_diagonal_label = label[((i-1) * pgm_image->width) + (j-1)];
-                    label[(i * pgm_image->width) + j] = left_diagonal_label;
-                    if (left_diagonal_label < lowest) {
-                        lowest = left_diagonal_label;
-                    }
-                    if (left_diagonal_label > biggest) {
-                        biggest = left_diagonal_label;
-                    }
-                    is_set = TRUE;
-                }
-                /* Right diagonal */
-                if (i > 0 && (j < pgm_image->width - 1) && pgm_image->data[((i - 1) * pgm_image->width) + (j + 1)]) {
-                    right_diagonal_label = label[((i - 1) * pgm_image->width) + (j + 1)];
-                    label[(i * pgm_image->width) + j] = right_diagonal_label;
-                    if (right_diagonal_label < lowest) {
-                        lowest = right_diagonal_label;
-                    }
-                    if (right_diagonal_label > biggest) {
-                        biggest = right_diagonal_label;
-                    }
-                    is_set = TRUE;
-                }
-                /* All neighboring pixels are black (background) */
-                if (!is_set) {
-                    label[(i * pgm_image->width) + j] = label_counter;
-                    label_counter++;
-                }
-                else {
-                    label[(i * pgm_image->width) + j] = lowest;
-                    update_equivalencies(list, biggest, lowest);
-                }
-                /* Label collision */
-/*//                if (left_label) {
-                    add_equivalency(list, left_label, lowest);
-                    if (left_diagonal_label && left_diagonal_label != left_label) {
-                        add_equivalency(list, left_label, left_diagonal_label);
-                        add_equivalency(list, left_diagonal_label, lowest);
-
-                    }
-                    if (up_label && up_label != left_label) {
-                        add_equivalency(list, left_label, up_label);
-                        add_equivalency(list, up_label, lowest);
-                    }
-                    if (right_diagonal_label && right_diagonal_label != left_label) {
-                        add_equivalency(list, left_label, right_diagonal_label);
-                        add_equivalency(list, right_diagonal_label, lowest);
-                    }
-                }
-                if (left_diagonal_label) {
-                    add_equivalency(list, left_diagonal_label, lowest);
-                    if (up_label && up_label != left_diagonal_label) {
-                        add_equivalency(list, left_diagonal_label, up_label);
-                        add_equivalency(list, up_label, lowest);
-                    }
-                    if (right_diagonal_label && right_diagonal_label != left_diagonal_label) {
-                        add_equivalency(list, left_diagonal_label, right_diagonal_label);
-                        add_equivalency(list, right_diagonal_label, lowest);
-                    }
-                }
-                if (up_label) {
-                    add_equivalency(list, up_label, lowest);
-                    if (right_diagonal_label && right_diagonal_label != up_label) {
-                        add_equivalency(list, up_label, right_diagonal_label);
-                        add_equivalency(list, right_diagonal_label, lowest);
-                    }
-                }
-                if (right_diagonal_label) {
-                    add_equivalency(list, right_diagonal_label, lowest);
-                }*/
-
-
-                if (label[(i * pgm_image->width) + j] == 27) { //j == 30, i == 116 pro 19ku
-                    printf("\n");
-                    linked_list *it = *list; /* TODO 20 -> 19 ale 20 sousedi se 17, ktera jde do 1 */
-                    while(it) {
-                        printf("[%d->%d] ", it->value, it->value2);
-                        it = it->next;
-                    }
-                    printf("\n");
-                    printf("%d---left:%d left_diag:%d up:%d right_diag:%d biggest:%d smallest:%d\n",
-                           label[(i * pgm_image->width) + j], left_label, left_diagonal_label, up_label, right_diagonal_label, biggest, lowest);
-                    printf("\n");
-                    }
-            }
-        }
-    //    printf("\n");
-    }
-
-
-    /*  printf("\n");
-      for (i = 0; i < pgm_image->height; i++) {
-          for (j = 0; j < pgm_image->width; j++) {
-              if (label[(i * pgm_image->width) + j]) {
-                  printf("%u  ", (label[(i * pgm_image->width) + j])/1);
-              }
-              else {
-                  printf(".  ");
-              }
-          }
-          printf("\n");
-      }*/
-}
-void replace_equivalent(pgm *pgm_image, linked_list *list, int *label) {
-    int i, j;
-    linked_list *it;
-
-    for (j = 0; j < 1; j++) { /* TODO smazat tenhle testovaci cyklus */
-        it = list;
-
-        while (it) {
-            for (i = 0; i < pgm_image->width * pgm_image->height; i++) {
-                if (it->value == label[i]) {
-                    label[i] = it->value2;
-                }
-            }
-            it = it->next;
-        }
-    }
-
-
-}
-void repaint_image(unsigned char *output_data, pgm *input_image, int label[input_image->width * input_image->height]) {
-    int i;
-    int colors_size;
-    int *colors;
-    linked_list *color_list = NULL, *it;
-    colors = compute_colors(input_image, label, &colors_size, &color_list);
-
-    it = color_list;
-    while(it) {
-        for (i = 0; i < input_image->width * input_image->height; i++) {
-            if (label[i] == it->value) {
-        //        printf("AAAA: %d\n", colors[it->value2]);
-                output_data[i] = colors[it->value2 - 1]; /* TODO - 1 */
-            }
-        }
-        it = it->next;
-    }
-
-    list_free(&color_list);
-    free(colors);
-    colors = NULL;
-}
-int *compute_colors(pgm *pgm_image, int *label, int *colors_size,
-                    linked_list **color_list) {
-    int i;
-    int color_counter = 1;
-    int *colors;
-
-    for (i = 0; i < pgm_image->height * pgm_image->width; i++) {
-        if(label[i] && !list_contains(*color_list, label[i])) {
-            list_add(&(*color_list), label[i], color_counter);
-            color_counter++;
-        }
-    }
-    *colors_size = color_counter - 1; /* TODO +1 nebo ne */
-    colors = malloc(sizeof(int) * (*colors_size));
-    
-    if (!colors) {
-        printf("ERR#3: Memory allocation was unsuccesful!\n");
-        exit(ERR_3);
-    }
-    memset(colors, 0, sizeof(int) * (*colors_size));
-
-    if (*colors_size >= 2) {
-        printf("COLOR SIZE: %d\n", *colors_size);
-        for (i = 0; i < (*colors_size); i++) {
-            colors[i] = ((int) (pgm_image->max_value - MAX_GRAY_OFFSET) / (*colors_size)) * (i + 1);
-            printf("Barva: %d\n",colors[i]);
-        }
-    }
-    else {
-        printf("NE, COLOR SIZE: %d\n", *colors_size);
-        colors[0] = DEFAULT_GRAY;
-    }
-    return colors;
+void free_pgm(pgm *pgm_image) {
+    free(pgm_image->data);
+    free(pgm_image);
 }
