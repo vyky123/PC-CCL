@@ -25,8 +25,12 @@
 #define ERR_3 3
 /* Writing to file error */
 #define ERR_4 4
-/* Too many components error */
+/* Reading file error */
 #define ERR_5 5
+/* Closing file error */
+#define ERR_6 6
+/* Too many components error */
+#define ERR_7 7
 
 #define TRUE 1
 #define FALSE 0
@@ -57,9 +61,10 @@ unsigned char *ccl(pgm *pgm_image);
 void find_foreground(pgm *pgm_image, linked_list **equivalency_list, int *label);
 /* ____________________________________________________________________________
 
-    int find_neighbors(int i, int j, pgm *pgm_image, int *label, int *up_label,
-                       int *left_label, int *left_diagonal_label,
-                       int *right_diagonal_label, int *lowest, int *biggest)
+    int find_neighbors(unsigned int i, unsigned int j, pgm *pgm_image,
+                       int *label, int *up_label, int *left_label,
+                       int *left_diagonal_label, int *right_diagonal_label,
+                       int *lowest, int *biggest)
 
     Checks all 4 neighbor labels ("the mask") and saves their value. Also
     changes biggest and lowest values if conditions are met. Part of the first
@@ -69,7 +74,7 @@ void find_foreground(pgm *pgm_image, linked_list **equivalency_list, int *label)
     Return 0 (FALSE) if pixel has no neighbors.
    ____________________________________________________________________________
 */
-int find_neighbors(int i, int j, pgm *pgm_image, int *label, int *up_label, int *left_label, int *left_diagonal_label,
+int find_neighbors(unsigned int i, unsigned int j, pgm *pgm_image, int *label, int *up_label, int *left_label, int *left_diagonal_label,
                    int *right_diagonal_label, int *lowest, int *biggest);
 /* ____________________________________________________________________________
 

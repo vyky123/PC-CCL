@@ -1,9 +1,3 @@
-/*
-    Module main.c
-    The "entry point" of the application.
-
- */
-
 #include "pgm.h"
 #include "ccl.h"
 
@@ -18,7 +12,7 @@ int main(int argc, char *argv[]) {
     pgm *pgm_image = NULL;
     unsigned char *output_data = NULL;
 
-    if (argc != 3) {
+    if (argc != 3 || !input_filename || !output_filename) {
         printf("ERR#1: Wrong input!\n");
         return ERR_1;
     }
@@ -26,7 +20,7 @@ int main(int argc, char *argv[]) {
     /* Loads PGM file into pgm_image */
     load_pgm(input_filename, &pgm_image);
 
-    /* Runs connected component labeling (CCL) algorithm and returns data of colored image */
+    /* Runs connected component labeling (CCL) algorithm and returns pixel data of colored image */
     output_data = ccl(pgm_image);
 
     /* Saves colored image into the output file */

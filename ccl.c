@@ -5,7 +5,7 @@ unsigned char *ccl(pgm *pgm_image) {
     unsigned char *output_data;
     linked_list *equivalency_list = NULL;
 
-    label = malloc((pgm_image->height * pgm_image->width) * sizeof(int));
+    label = (int *) malloc((pgm_image->height * pgm_image->width) * sizeof(int));
 
     if (!label) {
         printf("ERR#3: Memory allocation was unsuccessful!\n");
@@ -30,7 +30,7 @@ unsigned char *ccl(pgm *pgm_image) {
         free_pgm(pgm_image);
         exit(ERR_3);
     }
-    memset(output_data, 0, sizeof(unsigned char) * (pgm_image->width * pgm_image->height));
+    memset(output_data, 0, (pgm_image->width * pgm_image->height) * sizeof(unsigned char));
 
     /* Sets colors of pixels in output_data array */
     repaint_image(output_data, pgm_image, label);
@@ -41,8 +41,8 @@ unsigned char *ccl(pgm *pgm_image) {
 }
 
 void find_foreground(pgm *pgm_image, linked_list **equivalency_list, int *label) {
-    int i, j;
-    int left_label, up_label, left_diagonal_label, right_diagonal_label;
+    unsigned int i, j;
+    int left_label = 0, up_label = 0, left_diagonal_label = 0, right_diagonal_label = 0;
     int label_counter = 1;
     int lowest, biggest;
     int has_neighbors;
@@ -83,8 +83,8 @@ void find_foreground(pgm *pgm_image, linked_list **equivalency_list, int *label)
     }
 }
 
-int find_neighbors(int i, int j, pgm *pgm_image, int *label, int *up_label, int *left_label, int *left_diagonal_label,
-                   int *right_diagonal_label, int *lowest, int *biggest) {
+int find_neighbors(unsigned int i, unsigned int j, pgm *pgm_image, int *label, int *up_label, int *left_label,
+                   int *left_diagonal_label, int *right_diagonal_label, int *lowest, int *biggest) {
     int has_neighbors = FALSE;
     /* Upper neighbor */
     if (i > 0 && pgm_image->data[((i - 1) * pgm_image->width) + j]) {
@@ -135,7 +135,7 @@ int find_neighbors(int i, int j, pgm *pgm_image, int *label, int *up_label, int 
 
 
 void replace_equivalent(pgm *pgm_image, linked_list *equivalency_list, int *label) {
-    int i;
+    unsigned int i;
     linked_list *it;
     it = equivalency_list;
 
@@ -153,9 +153,9 @@ void replace_equivalent(pgm *pgm_image, linked_list *equivalency_list, int *labe
     }
 }
 
-void repaint_image(unsigned char *output_data, pgm *input_image, int label[input_image->width * input_image->height]) {
-    int i;
-    int colors_count;
+void repaint_image(unsigned char *output_data, pgm *input_image, int *label) {
+    unsigned int i;
+    int colors_count = 0;
     int *colors;
     linked_list *color_list = NULL, *it;
 
@@ -168,7 +168,7 @@ void repaint_image(unsigned char *output_data, pgm *input_image, int label[input
     while (it) {
         for (i = 0; i < input_image->width * input_image->height; i++) {
             if (label[i] == it->value) {
-                output_data[i] = colors[it->value2];
+                output_data[i] = (unsigned char) colors[it->value2];
             }
         }
         it = it->next;
@@ -197,17 +197,17 @@ int *compute_colors(pgm *pgm_image, int *label, int *colors_count,
     *colors_count = color_counter;
 
     if (*colors_count >= (WHITE_VALUE - MAX_GRAY_OFFSET)) {
-        printf("ERR#5: The image contains too many components to be colored independently!\n");
-        exit(ERR_5);
+        printf("ERR#7: The image contains too many components to be colored independently!\n");
+        exit(ERR_7);
     }
 
-    colors = malloc(sizeof(int) * (*colors_count));
+    colors = (int *) malloc((*colors_count) * sizeof(int));
 
     if (!colors) {
         printf("ERR#3: Memory allocation was unsuccesful!\n");
         exit(ERR_3);
     }
-    memset(colors, 0, sizeof(int) * (*colors_count));
+    memset(colors, 0, (*colors_count) * sizeof(int));
 
     /* If at least 2 components are being colored, distribute their grey values by integer division */
     if (*colors_count >= 2) {

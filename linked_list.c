@@ -49,19 +49,18 @@ int update_equivalencies(linked_list **head, int value, int value2) {
     while (it) {
         /* The first value is in the list */
         if (it->value == value) {
-
             /* Both values are already present in the list */
             if (it->value2 == value2) {
                 return TRUE;
             }
-
             /* The second value of equivalency list is different and might need to be updated */
             else {
-                /* Recursively update all equivalencies, if 0 (FALSE) is returned, return */
+                /* Recursively update all equivalencies (which also adds new ones if needed),
+                 * if 0 (FALSE) is returned, return */
                 if (!update_equivalencies(head, value2, it->value2)) {
-                    return FALSE;
+                    return TRUE;
                 }
-
+                /* Updates the value */
                 it->value2 = value2;
                 return TRUE;
             }
@@ -100,7 +99,7 @@ void list_add(linked_list **head, int value, int value2) {
         return;
     }
 
-    temp = malloc(sizeof(linked_list));
+    temp = (linked_list*) malloc(sizeof(linked_list));
     if (!temp) {
         printf("ERR#3: Memory allocation was unsuccesful!\n");
         exit(ERR_3);
@@ -125,5 +124,6 @@ void list_free(linked_list **head) {
         free(*head);
         *head = next;
     }
+    next = NULL;
     *head = NULL;
 }

@@ -1,24 +1,33 @@
 #include "ccl.h"
 
-
 void load_pgm(char *filename, pgm **pgm_image) {
     unsigned char ch;
     char value_buffer[BUFFER_SIZE];
-    int i, j;
+    unsigned int i, j;
     unsigned int value[3];
     unsigned char char1, char2, char3;
     unsigned char *ptr, *pixels;
     unsigned int width, height, max_value;
+
+
     /* Opens a file stream to variable f in a "read binary" mode */
     FILE *f = fopen(filename, "rb");
+
+    if (!f) {
+        printf("ERR#5: Error reading a file!\n");
+        exit(ERR_5);
+    }
 
     /* Loads first 3 chars into char variables */
     fscanf(f, "%c%c%c", &char1, &char2, &char3);
 
     /* Checks if the first line is "P5\n" */
-    if (char1 != 'P' || (char2 != '5') || (char3 != '\n')) {
+    if (char1 != (unsigned char) 'P' || (char2 != (unsigned char) '5') || (char3 != (unsigned char) '\n')) {
         printf("ERR#2: Wrong PGM format!");
-        fclose(f);
+        if (fclose(f) != 0) {
+            printf("ERR6#: Error when closing a file!\n");
+            exit(ERR_6);
+        }
         exit(ERR_2);
     }
     /* Goes char by char through second and third line and gets 3 values from these lines */
@@ -29,9 +38,10 @@ void load_pgm(char *filename, pgm **pgm_image) {
         j++;
         /* Gets char and adds it into the buffer until the value ends
          * (until the next char is not a space or new line) */
-        while (ch != ' ' && ch != '\n') {
+        while (ch != (unsigned char) ' ' && ch != (unsigned char) '\n') {
             ch = (char) fgetc(f);
-            if ((ch < '0' || ch > '9') && (ch != ' ' && ch != '\n')) {
+            if ((ch < (unsigned char) '0' || ch > (unsigned char) '9') &&
+                (ch != (unsigned char) ' ' && ch != (unsigned char) '\n')) {
                 printf("ERR#2: Wrong PGM format!");
                 fclose(f);
                 exit(ERR_2);
@@ -66,7 +76,7 @@ void load_pgm(char *filename, pgm **pgm_image) {
         for (j = 0; j < width; j++) {
             fscanf(f, "%c", &ch);
             /* If pixel is not black or white, PGM format is wrong */
-            if (((unsigned char) ch != WHITE_VALUE && (unsigned char) ch != 0)) {
+            if (((unsigned char) ch != (unsigned char) WHITE_VALUE && (unsigned char) ch != (unsigned char) 0)) {
                 printf("ERR#2: Wrong PGM format!");
                 free(pixels);
                 exit(ERR_2);
@@ -94,14 +104,18 @@ void load_pgm(char *filename, pgm **pgm_image) {
 
     memcpy((*pgm_image)->data, pixels, width * height * sizeof(unsigned char));
 
-    fclose(f);
+    if (fclose(f) != 0) {
+        printf("ERR6#: Error when closing a file!\n");
+        exit(ERR_6);
+    }
+
     free(pixels);
 }
 
 void save_pgm(char *filename, pgm *pgm_image, unsigned char *output_data) {
-    int i, j;
-    FILE *f = fopen(filename, "w");
+    unsigned int i, j;
     char *first_line = "P5\n";
+    FILE *f = fopen(filename, "w");
 
     if (!f) {
         printf("ERR4#: Error writing to file!\n");
@@ -110,7 +124,7 @@ void save_pgm(char *filename, pgm *pgm_image, unsigned char *output_data) {
 
     /* Prints the first 3 lines to a file */
     fprintf(f, "%s", first_line);
-    fprintf(f, "%d %d\n", pgm_image->width, pgm_image->height);
+    fprintf(f, "%u %u\n", pgm_image->width, pgm_image->height);
     fprintf(f, "%u\n", WHITE_VALUE);
 
     /* Prints image data to the file */
@@ -120,7 +134,10 @@ void save_pgm(char *filename, pgm *pgm_image, unsigned char *output_data) {
         }
     }
 
-    fclose(f);
+    if (fclose(f) != 0) {
+        printf("ERR6#: Error when closing a file!\n");
+        exit(ERR_6);
+    }
 }
 
 void free_pgm(pgm *pgm_image) {
