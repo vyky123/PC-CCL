@@ -1,1 +1,0 @@
-/usr/bin/gcc -g CMakeFiles/sem_prace_2.dir/main.c.o -o sem_prace_2 
